@@ -181,8 +181,7 @@ var chat = io.sockets.on('connection', function(socket) {
             chat.to(socket.setRoominfo).emit("logmessage", player.name+"さんがゲームに参加しました！");
             console.log("ready!");
             socket.setPlayerNameinfo=player.name;
-            //
-            playerkill(socket.setRoominfo);
+
         });
 
     });
@@ -227,16 +226,25 @@ function messagesend(socket) {
  return array;
 }
 
-//playerkill
-function playerkill(myroom){
+//playerdead 死亡判定 callbackで死んだplayer返す
+//callback使用方法
+//playerdead(socket.setRoominfo,function(player){
+//   if(player!=null){
+//      console.log(player+" is dead!");
+//   }
+//});
+function playerdead(myroom,callback){
     var query=dbdata.where({room:myroom});
     query.findOne(function (err, docs) {
+        if(err) {callback(null);}
         if(docs!=null){
             for(i=0;i<docs.player.length;i++){
                 if(docs.player[i].hp<=0){
-                    console.log(docs.player[i].name+" is dead!");
+                    callback(docs.player[i].name);
                 }
             }
+        }else{
+            callback(null);
         }
     });
 }

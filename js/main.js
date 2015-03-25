@@ -1,7 +1,11 @@
 enchant(); // おまじない
 
 //global
+//俺のターン！
 var myturn=false;
+// 「ガッシ！ボカッ！」アタシは死んだ。
+var Idied=false;
+//ゲーム始まってる？
 var gameplay=false;
 
 
