@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <title>RoomID:<%=room_id %></title>
+    <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+    <script type="text/javascript">
+    var RoomID = "<%=room_id %>";
+    </script>
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.5.1/jquery.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="./js/enchant.js"></script>
+    <script src="./js/ui.enchant.js"></script>
+    <script src="./js/main.js"></script>
+    <style>
+      /* ウィンドウとゲーム画面のすき間をなくします */
+      body {
+        width:900px;
+        height:400px;
+        padding: 0;
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body>
+  <!-- ここにゲームが表示されます。 -->
+      <div id="enchant-stage"></div>
+  </body>
+</html>

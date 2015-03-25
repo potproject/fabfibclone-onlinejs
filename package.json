@@ -1,0 +1,14 @@
+{
+  "name": "fabfib",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "express": "3.5.2",
+    "ejs": "*",
+    "socket.io": "*",
+    "mongoose":"*"
+  }
+}
