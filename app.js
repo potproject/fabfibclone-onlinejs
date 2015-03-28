@@ -165,6 +165,7 @@ var chat = io.sockets.on('connection', function(socket) {
         //join(room)で部屋を作る
         socket.setRoominfo=req.room;
         socket.join(req.room);
+        socket.join(socket.id);
 
         console.log(req.room+" join");
 
@@ -173,19 +174,34 @@ var chat = io.sockets.on('connection', function(socket) {
     socket.on('gameplay',function(player){
         console.log("gameready:"+player.name+
                     "  roomid:"+player.roomid+"  id:"+socket.id);
-        //player追加
-        dbdata.update({ room:player.roomid },
+            //player追加
+            dbdata.update({ room:player.roomid },
                     { $push:{player:{name:player.name,hp:12,socketid:socket.id}} },
                     { upsert: false, multi: true }, function(err) {
             //log
             chat.to(socket.setRoominfo).emit("logmessage", player.name+"さんがゲームに参加しました！");
             console.log("ready!");
             socket.setPlayerNameinfo=player.name;
-
-
-
+            });
         });
 
+
+    });
+
+    //gameから退出
+    socket.on('gameleave', function() {
+    console.log(socket.id+" disconnect");
+    //dbに登録した人だったら？
+        if(socket.setPlayerNameinfo!=undefined && socket.setPlayerNameinfo!=null){
+            //dbから削除しよう
+            console.log(socket.setPlayerNameinfo+" disconnect");
+            dbdata.update({ "room":socket.setRoominfo, },{ $pull:{"player":{"socketid":socket.id}} },
+                  { upsert: false, multi: false }, function(err) {
+            if(err){return;}
+            //とりあえずlog
+            chat.to(socket.setRoominfo).emit("logmessage", socket.setPlayerNameinfo+"さんが退出しました！");
+        });
+        }
     });
 
     //socket.io処理 - disconnection
@@ -193,10 +209,14 @@ var chat = io.sockets.on('connection', function(socket) {
     console.log(socket.id+" disconnect");
     //dbに登録した人だったら？
         if(socket.setPlayerNameinfo!=undefined && socket.setPlayerNameinfo!=null){
-            //dbから削除・・・する？
+            //dbから削除しよう
+            console.log(socket.setPlayerNameinfo+" disconnect");
+            dbdata.update({ "room":socket.setRoominfo, },{ $pull:{"player":{"socketid":socket.id}} },
+                  { upsert: false, multi: false }, function(err) {
+            if(err){return;}
             //とりあえずlog
             chat.to(socket.setRoominfo).emit("logmessage", socket.setPlayerNameinfo+"さんとの通信が切れました！");
-
+        });
         }
     });
 
