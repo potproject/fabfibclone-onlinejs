@@ -182,6 +182,8 @@ var chat = io.sockets.on('connection', function(socket) {
             console.log("ready!");
             socket.setPlayerNameinfo=player.name;
 
+
+
         });
 
     });
@@ -214,18 +216,6 @@ function shuffle(array) {
  return array;
 }
 
-//メッセージ送信のためのメゾット
-function messagesend(socket) {
-  var m = array.length, t, i;
-  while (m) {
-    i = Math.floor(Math.random() * m--);
-    t = array[m];
-    array[m] = array[i];
-    array[i] = t;
-  }
- return array;
-}
-
 //playerdead 死亡判定 callbackで死んだplayer返す
 //callback使用方法
 //playerdead(socket.setRoominfo,function(player){
@@ -233,13 +223,13 @@ function messagesend(socket) {
 //      console.log(player+" is dead!");
 //   }
 //});
-function playerdead(myroom,callback){
-    var query=dbdata.where({room:myroom});
+function playerdead(myroom,player,callback){
+    var query=dbdata.where({"room":myroom,"player.name":player});
     query.findOne(function (err, docs) {
         if(err) {callback(null);}
         if(docs!=null){
             for(i=0;i<docs.player.length;i++){
-                if(docs.player[i].hp<=0){
+                if(docs.player[i].hp<=0 && docs.player[i].name==player){
                     callback(docs.player[i].name);
                 }
             }
@@ -247,4 +237,25 @@ function playerdead(myroom,callback){
             callback(null);
         }
     });
+}
+
+//playerdamage ダメージ判定 特定のplayerにダメージを与える
+//dead:ダメージを受けたplayerが死んだ場合格納　いなければnull
+//callback使用方法
+//playerdamage(socket.setRoominfo,socket.setPlayerNameinfo,12,function(err,dead){
+//console.log("damage!"+socket.setPlayerNameinfo+":"+12);
+//if(dead!=null){console.log("dead!"+dead);}
+//});
+function playerdamage(myroom,player,damage,callback){
+    console.log(myroom+player+damage);
+    damage*=-1;
+    dbdata.update({ "room":myroom, "player.name":player},{ $inc:{"player.$.hp":damage} },
+                  { upsert: false, multi: false }, function(err) {
+        if(err){callback(err=true); return;}
+        ////playerdead 死亡判定 callbackで死んだplayer返す
+        playerdead(myroom,player,function(playername){
+            callback(false,playername);
+        });
+
+        });
 }
