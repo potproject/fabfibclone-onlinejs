@@ -169,6 +169,20 @@ var chat = io.sockets.on('connection', function(socket) {
 
         console.log(req.room+" join");
 
+        //roomに参加しているplayerを取得します
+        dbdata.findOne({ "room":req.room}, function(err,docs) {
+            if(err){return;}
+            //既に参加しているplayerを表示だ
+            var playerArray=[];
+            if(docs!=null){
+            for(i=0;i<docs.player.length;i++){
+                playerArray.push({name:docs.player[i].name,hp:docs.player[i].hp});
+            }
+            chat.to(socket.id).emit("viewinit",playerArray);
+                console.log(playerArray);
+            }
+        });
+
     });
     //game立ち上げボタン
     socket.on('gameplay',function(player){
@@ -178,16 +192,17 @@ var chat = io.sockets.on('connection', function(socket) {
             dbdata.update({ room:player.roomid },
                     { $push:{player:{name:player.name,hp:12,socketid:socket.id}} },
                     { upsert: false, multi: true }, function(err) {
+            //クライアントに通知、追加
+            chat.to(socket.setRoominfo).emit("newjoin", {name:player.name,hp:12});
             //log
             chat.to(socket.setRoominfo).emit("logmessage", player.name+"さんがゲームに参加しました！");
             console.log("ready!");
             socket.setPlayerNameinfo=player.name;
             });
         });
-
-
-    });
-
+        //gamestart!
+    socket.on('gamestart',function(player){
+        });
     //gameから退出
     socket.on('gameleave', function() {
     console.log(socket.id+" disconnect");
@@ -214,6 +229,8 @@ var chat = io.sockets.on('connection', function(socket) {
             dbdata.update({ "room":socket.setRoominfo, },{ $pull:{"player":{"socketid":socket.id}} },
                   { upsert: false, multi: false }, function(err) {
             if(err){return;}
+            //クライアントに通知、削除
+            chat.to(socket.setRoominfo).emit("newleave", socket.setPlayerNameinfo);
             //とりあえずlog
             chat.to(socket.setRoominfo).emit("logmessage", socket.setPlayerNameinfo+"さんとの通信が切れました！");
         });

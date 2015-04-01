@@ -7,6 +7,8 @@ var myturn=false;
 var Idied=false;
 //ゲーム始まってる？
 var gameplay=false;
+//現在のゲーム人数
+var PlayerNumberOfPeople=0;
 
 
 window.onload = function() {
@@ -64,6 +66,7 @@ window.onload = function() {
         userBackgroundColor='#000000';
         textXline=160;
         textYline=0;
+        //playerは最大四人までですから
         for(i=0;i<user.length;i++){
             user[i].moveTo(textXline*i,textYline);
             user[i].backgroundColor=userBackgroundColor;
@@ -107,10 +110,10 @@ window.onload = function() {
         cardD.y = 120;
         game.rootScene.addChild(cardD);
         //username欄
-        var usertext=[[new Label('1name'),new Label('1HP')],
-                     [new Label('2name'),new Label('2HP')],
-                     [new Label('3name'),new Label('3HP')],
-                     [new Label('4name'),new Label('4HP')]];
+        var usertext=[[new Label(''),new Label('')],
+                     [new Label(''),new Label('')],
+                     [new Label(''),new Label('')],
+                     [new Label(''),new Label('')]];
         for(i=0;i<usertext.length;i++){
             usertext[i][0].moveTo(10+textXline*i,5+textYline);
             game.rootScene.addChild(usertext[i][0]);
@@ -209,7 +212,7 @@ window.onload = function() {
         s.on("disconnect", function () {});
 
         s.on('connected', function() {
-            //部屋番号送信
+            //部屋番号送信・初期表示
             s.emit('init', {'room': RoomID});
         });
 
@@ -300,6 +303,40 @@ window.onload = function() {
         //ログ受け取り
         s.on("logmessage", function (data) {
             logpush(data);
+        });
+        //参加者を最初に表示
+        s.on("viewinit", function (data) {
+            //挿入です
+            for(i=0;i<data.length;i++){
+                usertext[i][0].text=data[i].name;
+                usertext[i][1].text=data[i].hp;
+            }
+            if(data.length<=4){
+                PlayerNumberOfPeople=data.length;
+            }else{
+            //既に4人以上参加してるので無理です
+                PlayerNumberOfPeople=4;
+            }
+        });
+        //抜けた参加者更新
+        s.on("newleave", function (leaveplayername) {
+        //抜けた奴を特定しよう
+        for(i=0;i<usertext.length;i++){
+            if(usertext[i][0].text==leaveplayername){
+                //抜けた奴を赤く
+                user[i].backgroundColor="#FF0000";
+
+            }
+            }
+        });
+        //新しく入室した参加者更新(自分も含む)
+        s.on("newjoin", function (data) {
+            if(PlayerNumberOfPeople<4){
+                usertext[PlayerNumberOfPeople][0].text=data.name;
+                usertext[PlayerNumberOfPeople][1].text=data.hp;
+                PlayerNumberOfPeople++;
+            }
+
         });
         //disconnect!
         s.on("disconnect", function (data) {
