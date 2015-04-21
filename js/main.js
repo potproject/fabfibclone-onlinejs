@@ -223,6 +223,16 @@ window.onload = function() {
             //参加ボタン
             //名前入力のちPlay押す
             if(buttonp.opacity==1 && inputname._element.value!=""){
+                //既に4人です
+                if(PlayerNumberOfPeople>3){
+                    logpush("既に4人に達しています！");
+                    return;
+                }
+                //既にゲーム始まっているんで・・・
+                if(gameplay){
+                    logpush("既にゲーム始まってます！");
+                    return;
+                }
             logpush("play:"+inputname._element.value);
             s.emit("gameplay",{name:inputname._element.value,roomid:RoomID});
             //見えなくしよう
@@ -297,6 +307,8 @@ window.onload = function() {
             textbox[textbox.length-1].text=label;
         }
 
+
+
         //socket.io受け取り function
         //自分のターンだ！
 
@@ -341,6 +353,39 @@ window.onload = function() {
         //disconnect!
         s.on("disconnect", function (data) {
             logpush(data);
+        });
+
+
+
+        //gameplay中の処理
+        //
+        //3枚のカードの表示
+        s.on("carddisplay", function (data) {
+            if(gameplay){
+                cardA.image=game.assets['./image/'
+                                           +data[0].number+"d"+data[0].damage+".png"];
+                cardB.image=game.assets['./image/'
+                                           +data[1].number+"d"+data[1].damage+".png"];
+                cardC.image=game.assets['./image/'
+                                           +data[2].number+"d"+data[2].damage+".png"];
+                cardA.opacity=1;
+                cardB.opacity=1;
+                cardC.opacity=1;
+
+            }
+
+        });
+         //カードの非表示
+        s.on("cardnondisplay", function () {
+            if(gameplay){
+                cardA.image=game.assets['./image/header.png'];
+                cardB.image=game.assets['./image/header.png'];
+                cardC.image=game.assets['./image/header.png'];
+                cardA.opacity=1;
+                cardB.opacity=1;
+                cardC.opacity=1;
+            }
+
         });
     }
     game.start();
