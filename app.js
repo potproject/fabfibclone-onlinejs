@@ -176,7 +176,7 @@ var chat = io.sockets.on('connection', function(socket) {
             var playerArray=[];
             if(docs!=null){
             for(i=0;i<docs.player.length;i++){
-                playerArray.push({name:docs.player[i].name,hp:docs.player[i].hp});
+                playerArray.push({name:docs.player[i].name,hp:docs.player[i].hp,id:docs.player[i].socketid});
             }
             chat.to(socket.id).emit("viewinit",playerArray);
                 console.log(playerArray);
@@ -193,7 +193,7 @@ var chat = io.sockets.on('connection', function(socket) {
                     { $push:{player:{name:player.name,hp:12,socketid:socket.id}} },
                     { upsert: false, multi: true }, function(err) {
             //クライアントに通知、追加
-            chat.to(socket.setRoominfo).emit("newjoin", {name:player.name,hp:12});
+            chat.to(socket.setRoominfo).emit("newjoin", {name:player.name,hp:12,id:socket.id});
             //log
             chat.to(socket.setRoominfo).emit("logmessage", player.name+"さんがゲームに参加しました！");
             console.log("ready!");
@@ -205,16 +205,19 @@ var chat = io.sockets.on('connection', function(socket) {
         });
     //gameから退出
     socket.on('gameleave', function() {
-    console.log(socket.id+" disconnect");
+    console.log(socket.id+" leave");
     //dbに登録した人だったら？
         if(socket.setPlayerNameinfo!=undefined && socket.setPlayerNameinfo!=null){
             //dbから削除しよう
-            console.log(socket.setPlayerNameinfo+" disconnect");
+            console.log(socket.setPlayerNameinfo+" leave");
             dbdata.update({ "room":socket.setRoominfo, },{ $pull:{"player":{"socketid":socket.id}} },
                   { upsert: false, multi: false }, function(err) {
             if(err){return;}
+            //人が抜けた時の処理
+            chat.to(socket.setRoominfo).emit("newleave",socket.id);
             //とりあえずlog
             chat.to(socket.setRoominfo).emit("logmessage", socket.setPlayerNameinfo+"さんが退出しました！");
+            socket.setPlayerNameinfo=null;
         });
         }
     });
@@ -230,7 +233,7 @@ var chat = io.sockets.on('connection', function(socket) {
                   { upsert: false, multi: false }, function(err) {
             if(err){return;}
             //クライアントに通知、削除
-            chat.to(socket.setRoominfo).emit("newleave", socket.setPlayerNameinfo);
+            chat.to(socket.setRoominfo).emit("newdisconnect", socket.id);
             //とりあえずlog
             chat.to(socket.setRoominfo).emit("logmessage", socket.setPlayerNameinfo+"さんとの通信が切れました！");
         });

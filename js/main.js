@@ -110,10 +110,10 @@ window.onload = function() {
         cardD.y = 120;
         game.rootScene.addChild(cardD);
         //username欄
-        var usertext=[[new Label(''),new Label('')],
-                     [new Label(''),new Label('')],
-                     [new Label(''),new Label('')],
-                     [new Label(''),new Label('')]];
+        var usertext=[[new Label(''),new Label(''),null],
+                     [new Label(''),new Label(''),null],
+                     [new Label(''),new Label(''),null],
+                     [new Label(''),new Label(''),null]];
         for(i=0;i<usertext.length;i++){
             usertext[i][0].moveTo(10+textXline*i,5+textYline);
             game.rootScene.addChild(usertext[i][0]);
@@ -189,21 +189,8 @@ window.onload = function() {
         game.rootScene.addChild(buttonr);
 
         //init
-        //いらないEntityを隠す
-        cardA.opacity=0;
-        cardB.opacity=0;
-        cardC.opacity=0;
-        //数字セレクト
-        nametextlabel2.opacity=0;
-        inputnumber.opacity=0;
-        buttong.opacity=0;
-        //始めるボタン
-        buttons.opacity=0;
-        //退出ボタン
-        buttone.opacity=0;
-        //ブラフ・受け取る
-        buttonb.opacity=0;
-        buttonr.opacity=0;
+        init();
+
 
 
         //socket.io
@@ -253,7 +240,15 @@ window.onload = function() {
         buttone.addEventListener(Event.TOUCH_START, function(e) {
             //退出ボタン
             if(buttone.opacity==1){
-            logpush("end");
+                //既にゲーム始まっているんで・・・
+                if(gameplay){
+                    logpush("既にゲーム始まってます！");
+                    return;
+                }
+                //始まってない場合に退出します
+                s.emit("gameleave");
+                //クライアント初期化
+                init();
             }
         });
         buttonb.addEventListener(Event.TOUCH_START, function(e) {
@@ -307,6 +302,30 @@ window.onload = function() {
             textbox[textbox.length-1].text=label;
         }
 
+        //クライアント初期化: init
+        function init(){
+        //いらないEntityを隠す
+        cardA.opacity=0;
+        cardB.opacity=0;
+        cardC.opacity=0;
+        //数字セレクト
+        nametextlabel2.opacity=0;
+        inputnumber.opacity=0;
+        buttong.opacity=0;
+        //始めるボタン
+        buttons.opacity=0;
+        //退出ボタン
+        buttone.opacity=0;
+        //ブラフ・受け取る
+        buttonb.opacity=0;
+        buttonr.opacity=0;
+        inputname._element.value="";
+        inputnumber._element.value="";
+        //名前入力欄
+        nametextlabel.opacity=1;
+        buttonp.opacity=1;
+        inputname.opacity=1;
+        }
 
 
         //socket.io受け取り function
@@ -322,6 +341,7 @@ window.onload = function() {
             for(i=0;i<data.length;i++){
                 usertext[i][0].text=data[i].name;
                 usertext[i][1].text=data[i].hp;
+                usertext[i][2]=data[i].id;
             }
             if(data.length<=4){
                 PlayerNumberOfPeople=data.length;
@@ -331,21 +351,57 @@ window.onload = function() {
             }
         });
         //抜けた参加者更新
-        s.on("newleave", function (leaveplayername) {
+        s.on("newleave", function (leavesocketid) {
         //抜けた奴を特定しよう
         for(i=0;i<usertext.length;i++){
-            if(usertext[i][0].text==leaveplayername){
-                //抜けた奴を赤く
-                user[i].backgroundColor="#FF0000";
+            if(usertext[i][2]==leavesocketid){
+                console.log(leavesocketid);
+                //抜けた奴を消す
+                usertext[i][0].text="";
+                usertext[i][1].text="";
+                for(x=i+1;x<usertext.length;x++){
+                    usertext[x-1][0].text=usertext[x][0].text;
+                    usertext[x-1][1].text=usertext[x][1].text;
+                    usertext[x-1][2]=usertext[x][2];
+                    usertext[x][0].text="";
+                    usertext[x][1].text="";
+                    usertext[x][2]=null;
 
+                }
+                PlayerNumberOfPeople--;
             }
-            }
+        }
+        });
+        //通信が切れた参加者更新
+        s.on("newdisconnect", function (leavesocketid) {
+        //抜けた奴を特定しよう
+             for(i=0;i<usertext.length;i++){
+                if(usertext[i][2]==leavesocketid){
+                    if(gameplay){//抜けた奴を赤く
+                    user[i].backgroundColor="#FF0000";
+                    }else{
+                        //抜けた奴を消す
+                        usertext[i][0].text="";
+                        usertext[i][1].text="";
+                        for(x=i+1;x<usertext.length;x++){
+                            usertext[x-1][0].text=usertext[x][0].text;
+                            usertext[x-1][1].text=usertext[x][1].text;
+                            usertext[x-1][2]=usertext[x][2];
+                            usertext[x][0].text="";
+                            usertext[x][1].text="";
+                            usertext[x][2]=null;
+                            PlayerNumberOfPeople--;
+                        }
+                    }
+                    }
+                }
         });
         //新しく入室した参加者更新(自分も含む)
         s.on("newjoin", function (data) {
             if(PlayerNumberOfPeople<4){
                 usertext[PlayerNumberOfPeople][0].text=data.name;
                 usertext[PlayerNumberOfPeople][1].text=data.hp;
+                usertext[PlayerNumberOfPeople][2]=data.id;
                 PlayerNumberOfPeople++;
             }
 
