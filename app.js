@@ -185,7 +185,7 @@ var chat = io.sockets.on('connection', function(socket) {
 
     });
     //game立ち上げボタン
-    socket.on('gameplay',function(player){
+    socket.on('gamejoin',function(player){
         console.log("gameready:"+player.name+
                     "  roomid:"+player.roomid+"  id:"+socket.id);
             //player追加

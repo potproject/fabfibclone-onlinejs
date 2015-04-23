@@ -218,23 +218,34 @@ window.onload = function() {
                 //既にゲーム始まっているんで・・・
                 if(gameplay){
                     logpush("既にゲーム始まってます！");
+                    logpush("参加できません！");
                     return;
                 }
+                //名前被ってます
+                for(x=0;x<usertext.length;x++){
+                    if(usertext[x][0].text==inputname._element.value){
+                    logpush("既に同じ名前のプレイヤーがいます！");
+                    return;
+                    }
+                }
             logpush("play:"+inputname._element.value);
-            s.emit("gameplay",{name:inputname._element.value,roomid:RoomID});
+            if(PlayerNumberOfPeople==0){
+                //見えるようにしよう
+                buttons.opacity=1;
+            }
+            s.emit("gamejoin",{name:inputname._element.value,roomid:RoomID});
             //見えなくしよう
             buttonp.opacity=0;
             nametextlabel.opacity=0;
             inputname.opacity=0;
-            //見えるようにしよう
-            buttons.opacity=1;
+
             buttone.opacity=1;
             }
         });
         buttons.addEventListener(Event.TOUCH_START, function(e) {
             //始めるボタン
             if(buttons.opacity==1){
-            logpush("start");
+            s.emit("gamestart");
             }
         });
         buttone.addEventListener(Event.TOUCH_START, function(e) {
