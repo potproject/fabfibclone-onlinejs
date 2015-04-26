@@ -37,7 +37,7 @@ defaultcard=[
 
 var UserSchema = new MongooseSchema({
     room:     {type:String,require:true},
-    gameplay: { type:String,required:true}, //wait/staret/end
+    gameplay: { type:String,required:true}, //wait/start/end
     player:   { type:Array}, //Array :Player
     card:     { type:Array}, //card 0-50
     hand:     { type:Array}, //hand[3]
@@ -202,6 +202,26 @@ var chat = io.sockets.on('connection', function(socket) {
         });
         //gamestart!
     socket.on('gamestart',function(player){
+        //gamestartします。
+        chat.to(socket.setRoominfo).emit("logmessage","ゲームを開始します...");
+        //プレイヤーシャッフル
+        var query=dbdata.where({"room":socket.setRoominfo});
+        query.findOne(function (err, docs) {
+            if(err) {return;}
+            if(docs==null){return;}
+            var splayerdata=shuffle(docs.player);
+            dbdata.update({ "room":socket.setRoominfo, },{ "player":splayerdata,"gameplay":"start" },
+                  { upsert: false, multi: false }, function(err) {
+                if(err){return;}
+                //gamestart!
+                //clientにゲームスタートを送ります
+                chat.to(socket.setRoominfo).emit("gamestart_client");
+                //操作してるプレイヤーの縁に色を
+                chat.to(socket.setRoominfo).emit("playersign",splayerdata[0].socketid);
+                //最初のプレーヤーに指示
+                chat.to(splayerdata[0].socketid).emit("yourturn");
+                });
+            });
         });
     //gameから退出
     socket.on('gameleave', function() {

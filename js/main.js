@@ -426,6 +426,26 @@ window.onload = function() {
 
         //gameplay中の処理
         //
+        //gamestartの処理
+        s.on("gamestart_client",function(data){
+            if(!gameplay){
+                gameplay=true;
+                //はじめます
+
+            }
+        });
+        //playersign: 操作しているplayer
+        s.on("playersign",function(data){
+            if(!gameplay){
+                for(i=0;i<usertext.length;i++){
+                    if(usertext[i][2]==leavesocketid){
+                        user[i].backgroundColor="#FF00FF";
+                    }else{
+                        user[i].backgroundColor="#000000";
+                    }
+                }
+            }
+        });
         //3枚のカードの表示
         s.on("carddisplay", function (data) {
             if(gameplay){
