@@ -93,7 +93,8 @@ app.post('/', function(req,res){
                 var ins = new dbdata();
                 ins.room=req.body.room;
                 ins.gameplay  = 'wait';
-                ins.card = shuffle(defaultcard);
+                //ins.card = shuffle(defaultcard);
+                ins.card = [];
                 ins.hand=[];
                 ins.save(function(err) {
                 if (err) { console.log(err); }
@@ -102,6 +103,7 @@ app.post('/', function(req,res){
             }
             //登録がある場合は何もしません
             res.render('index.ejs',{room_id:req.body.room});
+
         });
 
 });
@@ -210,12 +212,16 @@ var chat = io.sockets.on('connection', function(socket) {
             if(err) {return;}
             if(docs==null){return;}
             var splayerdata=shuffle(docs.player);
-            dbdata.update({ "room":socket.setRoominfo, },{ "player":splayerdata,"gameplay":"start" },
+            //デッキにカードをセット
+            var deckcard=shuffle(defaultcard);
+            dbdata.update({ "room":socket.setRoominfo, },{ "player":splayerdata,"gameplay":"start","card":deckcard },
                   { upsert: false, multi: false }, function(err) {
                 if(err){return;}
                 //gamestart!
+                //deck表示
+                chat.to(socket.setRoominfo).emit("deckupdate",50);
                 //clientにゲームスタートを送ります
-                chat.to(socket.setRoominfo).emit("gamestart_client");
+                chat.to(socket.setRoominfo).emit("gamestart_client",splayerdata);
                 //操作してるプレイヤーの縁に色を
                 chat.to(socket.setRoominfo).emit("playersign",splayerdata[0].socketid);
                 //最初のプレーヤーに指示
@@ -262,20 +268,6 @@ var chat = io.sockets.on('connection', function(socket) {
 
 });
 
-
-
-//Fisher–Yatesアルゴリズムでのカードシャッフル！
-function shuffle(array) {
-  var m = array.length, t, i;
-  while (m) {
-    i = Math.floor(Math.random() * m--);
-    t = array[m];
-    array[m] = array[i];
-    array[i] = t;
-  }
- return array;
-}
-
 //playerdead 死亡判定 callbackで死んだplayer返す
 //callback使用方法
 //playerdead(socket.setRoominfo,function(player){
@@ -318,4 +310,93 @@ function playerdamage(myroom,player,damage,callback){
         });
 
         });
+}
+
+//playercarddraw カードを指定された枚数分引く処理
+//カードを交換した時に、特定の枚数交換します
+//number:枚数
+//myroom:部屋
+//callback使用方法
+//playercarddraw(socket.setRoominfo,3,function(err){
+//if(err){return;}
+//
+//});
+function playercarddraw(myroom,number,callback){
+    if(number>0 && number<4){
+    console.log("carddraw"+number);
+    var query=dbdata.where({"room":myroom});
+    dbdata.findOne(query,null,function(err,docs){
+        //数だけshift
+        var usecardtemp=[];
+        for(x=0;x<number;x++){
+            //デッキのカード無くなりました
+            if(docs.card.length<=0){
+            //追加します
+            docs.card=shuffle(defaultcard);
+            }
+            usecardtemp.push(docs.card.shift());
+
+        }
+        //handconcat
+        usecardtemp=usecardtemp.concat(docs.hand);
+        //cardsort
+        usecardtemp=cardsort(usecardtemp);
+        dbdata.update({ "room":myroom},{ "card":docs.card,"hand":usecardtemp },
+                  { upsert: false}, function(err) {
+            callback(false);
+
+        });
+    });
+    }
+}
+
+
+//playerdiscard 指定されたカードを捨てる処理
+//myroom:部屋
+//cardtemp:捨てるカードではなく保持するカードを取る
+//捨てたカードがある場合、捨てた分を引く -> playercarddraw
+//callback使用方法
+//playerdiscard(socket.setRoominfo,3,function(err){
+//if(err){return;}
+//
+//});
+function playerdiscard(myroom,cardtemp,callback){
+    dbdata.update({ "room":myroom},{ "hand":cardtemp },
+      { upsert: false}, function(err) {
+        //捨てた分を引く
+        playercarddraw(myroom,3-cardtemp.length,function(err){
+            if(err){ callback(true);return;}
+            //正常
+            callback(false);
+
+            });
+        });
+}
+
+//cardsort　カードを降順(number)に並べ替える
+function cardsort(card){
+    if(card){
+        card.sort(
+            function(a,b){
+                var aName=a["number"];
+                var bName=b["number"];
+                if(aName>bName) return -1;
+                if(aName<bName) return 1;
+                return 0;
+            }
+        );
+    }
+    return card;
+}
+
+//Fisher–Yatesアルゴリズムでのカードシャッフル！
+function shuffle(array) {
+  var m = array.length, t, i;
+  while (m) {
+    i = Math.floor(Math.random() * m--);
+    t = array[m];
+    array[m] = array[i];
+    array[i] = t;
+  }
+ return array;
 }

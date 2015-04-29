@@ -109,6 +109,14 @@ window.onload = function() {
         cardD.x = 480;
         cardD.y = 120;
         game.rootScene.addChild(cardD);
+
+        //deckの枚数表示label
+        var decksheets=new Label('');
+        decksheets.x=510;
+        decksheets.y=180;
+        decksheets.font="30px 'Consolas', 'Monaco', 'ＭＳ ゴシック'";
+        game.rootScene.addChild(decksheets);
+
         //username欄
         var usertext=[[new Label(''),new Label(''),null],
                      [new Label(''),new Label(''),null],
@@ -431,12 +439,18 @@ window.onload = function() {
             if(!gameplay){
                 gameplay=true;
                 //はじめます
+                //player並び替えしたように表示
+                for(a=0;a<data.length;a++){
+                usertext[a][0].text=data[a].name;
+                usertext[a][1].text=data[a].hp;
+                usertext[a][2]=data[a].id;
+
+                }
 
             }
         });
         //playersign: 操作しているplayer
         s.on("playersign",function(data){
-            if(!gameplay){
                 for(i=0;i<usertext.length;i++){
                     if(usertext[i][2]==leavesocketid){
                         user[i].backgroundColor="#FF00FF";
@@ -444,7 +458,6 @@ window.onload = function() {
                         user[i].backgroundColor="#000000";
                     }
                 }
-            }
         });
         //3枚のカードの表示
         s.on("carddisplay", function (data) {
@@ -473,6 +486,10 @@ window.onload = function() {
                 cardC.opacity=1;
             }
 
+        });
+        //deck枚数更新
+        s.on("deckupdate",function(number){
+            decksheets.text=""+number;
         });
     }
     game.start();
